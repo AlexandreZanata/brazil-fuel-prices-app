@@ -11,6 +11,8 @@
 
 Display average, min, and max prices for all available `FuelProduct` values in the selected municipality for the latest (or selected) `SurveyWeek`.
 
+This is the **fuel averages detail** screen. It is reached from Home via **View full price details**. Tapping a `FuelProduct` card on Home does **not** open this screen — it opens UC-007 directly for that fuel (one-tap shortcut).
+
 ## Preconditions
 
 - `CitySelected` or preferred location set.
@@ -31,6 +33,8 @@ Display average, min, and max prices for all available `FuelProduct` values in t
    - Min / max range.
    - Station count surveyed.
 5. User taps a fuel row → emit `FuelProductSelected` → navigate to UC-007 (if station detail) or expand detail inline.
+
+> **Entry point note:** Home fuel cards skip this screen and navigate straight to UC-007 with the tapped `FuelProduct` (−1 step). This screen keeps the min/avg/max + station-count comparison view reachable from Home.
 
 ## Alternative flows
 

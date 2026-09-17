@@ -36,6 +36,7 @@ There is **no authentication** in v1. The End User is anonymous; preferences are
 8. Get **local alerts** when fuel price drops vs the previous survey week (UC-014).
 9. **Skip manual city selection** on first launch by optionally sharing device location (UC-012).
 10. **Navigate to a gas station** in Maps or Waze from the station list (UC-013).
+11. **Reach the cheapest station near me with one tap** instead of comparing every row (UC-015).
 
 ---
 
@@ -53,10 +54,11 @@ flowchart LR
     D -->|Yes| E[Home]
     E --> F[Select location]
     F --> G[View fuel prices]
-    G --> H{Station detail?}
-    H -->|Yes| I[Station list]
-    H -->|No| J[Done / history / settings]
-    I --> J
+    G -->|Tap fuel card| I[Station list for that fuel]
+    G -->|View full price details| P[Fuel averages detail]
+    P -->|Tap fuel row| I
+    I --> J[Done / history / settings]
+    P --> J
 ```
 
 ### Journey steps (business language)
@@ -67,7 +69,7 @@ flowchart LR
 4. **Sync** — Targeted download/import for the selected week only (UC-001 scoped); progress visible.
 5. **Home** — Show selected city (or prompt to select), **active week chip** (tap to change week), prices per `FuelProduct` with vector icons, and tank fill cost cards (UC-011).
 6. **Location selection** — User picks state + municipality, **searches nationally** by name (IBGE catalog + FTS, UC-004), or **uses device location** once after onboarding (UC-012).
-7. **Fuel detail** — Tap a fuel to see min/avg/max, station count, and optional station list.
+7. **Fuel detail** — Tapping a fuel card on Home opens the **station list for that fuel directly** (UC-007) — one tap, no intermediate fuel selection. The min/avg/max averages view remains one tap away via **View full price details** (UC-005); from there, tapping a fuel row also opens its station list. On the station list, **Cheapest near me** (UC-015) recommends the cheapest station close to the user — within a configurable search radius (Settings) — and opens Maps on it.
 8. **Vehicles** — Register cars with tank size and fuel type; choose cheapest or specific station for cost estimates (UC-010).
 9. **Settings** — Language, sync preferences, storage management, data attribution, week picker shortcut, geocoding attribution.
 
@@ -202,6 +204,10 @@ Stored on device only. No cloud sync in v1.
 - **Station navigation** (UC-013) — open Maps/Waze from station list
 - **Local price drop notifications** (UC-014) — after weekly sync, no backend
 
+### v3.2 — Nearest best-price station (unreleased)
+
+- **Find nearest best-price station** (UC-015) — one-tap recommendation from the station list using device location plus Nominatim forward geocoding of the cheapest candidates, inside a user-configured search radius (3/5/10/15 km, BR-028)
+
 ### Out of scope (v1)
 
 - User accounts / login
@@ -231,6 +237,7 @@ Detailed specs live in `docs/use-cases/`. **Do not implement undocumented use ca
 | UC-012 | Resolve location from device | User | [uc-012-resolve-location-from-device.md](use-cases/uc-012-resolve-location-from-device.md) |
 | UC-013 | Navigate to station | User | [uc-013-navigate-to-station.md](use-cases/uc-013-navigate-to-station.md) |
 | UC-014 | Fuel price drop alerts | User, System | [uc-014-fuel-price-drop-alerts.md](use-cases/uc-014-fuel-price-drop-alerts.md) |
+| UC-015 | Find nearest best-price station | User | [uc-015-find-nearest-best-price-station.md](use-cases/uc-015-find-nearest-best-price-station.md) |
 
 ---
 
@@ -267,6 +274,7 @@ Rules referenced by use cases. Full list maintained in [glossary.md](glossary.md
 | BR-025 | Price drop alerts only when price decreases vs previous week |
 | BR-026 | Normalized station address for external map navigation |
 | BR-027 | Maximum three registered vehicles |
+| BR-028 | Nearest best-price station (price band + device distance) |
 
 ---
 
@@ -286,7 +294,7 @@ Rules referenced by use cases. Full list maintained in [glossary.md](glossary.md
 | `VehicleRemoved` | UC-010 | vehicleId |
 | `PriceDropAlertConfigured` | UC-014 | vehicleId, enabled, alertPriceSource |
 | `DeviceLocationResolved` | UC-012 | state, municipality |
-| `StationNavigationRequested` | UC-013 | cnpj, stationNavigationQuery |
+| `StationNavigationRequested` | UC-013, UC-015 | cnpj, stationNavigationQuery |
 
 ---
 
@@ -322,7 +330,7 @@ ANP typically publishes weekly; the 8-day threshold allows for publication delay
 
 - **No account or cloud sync** — preferences and vehicles stored on device only.
 - **Optional device location** (UC-012) — one-shot GPS for municipality resolution; coordinates not persisted.
-- **Nominatim** — reverse geocode calls subject to OSM usage policy; results cached locally (BR-021).
+- **Nominatim** — reverse (UC-012) and forward (UC-015) geocode calls subject to OSM usage policy; results cached locally (BR-021). UC-015 sends candidate station addresses (public ANP data) and uses device coordinates only to pick the nearest station — coordinates are not stored.
 - **Local notifications** (UC-014) — generated on device after sync; no push backend.
 - CNPJ and station addresses are **public ANP data** — display as-is, no masking required.
 - No analytics SDK without explicit future ADR.

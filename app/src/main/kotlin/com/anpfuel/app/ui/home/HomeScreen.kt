@@ -231,7 +231,7 @@ internal fun HomeContent(
                     uiState.prices.forEach { price ->
                         FuelPriceCard(
                             price = price,
-                            onClick = { onNavigate(Routes.PRICES) },
+                            onClick = { onNavigate(Routes.stations(price.fuelProduct)) },
                         )
                     }
                     TextButton(

@@ -13,12 +13,14 @@ List individual `RetailStation` prices for a selected municipality, fuel, and we
 
 ## Preconditions
 
-- Municipality and `FuelProduct` selected.
+- Municipality selected and a `FuelProduct` in scope — preselected by the navigation argument when the user taps a fuel card on Home.
 - `StationPrice` data available locally for `SurveyWeek` **OR** user accepts on-demand download when `syncStationDetail` is disabled (BR-008).
 
 ## Main flow
 
-1. User opens station list from UC-005.
+1. User opens the station list for a fuel — either:
+   - taps a `FuelProduct` card on Home (single-tap shortcut, fuel preselected), **or**
+   - taps a fuel row on the fuel averages detail screen (UC-005).
 2. System checks local `StationPrice` for scope.
 3. **IF** data exists → load and display list.
 4. **IF** data missing → show prompt to download station detail for this week.
@@ -69,4 +71,6 @@ List individual `RetailStation` prices for a selected municipality, fuel, and we
 
 ## Related documentation
 
+- [uc-005-view-municipality-prices.md](uc-005-view-municipality-prices.md) — fuel averages detail screen
 - [uc-013-navigate-to-station.md](uc-013-navigate-to-station.md)
+- [uc-015-find-nearest-best-price-station.md](uc-015-find-nearest-best-price-station.md) — cheapest station near the user
