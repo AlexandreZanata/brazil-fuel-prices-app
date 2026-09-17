@@ -61,6 +61,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Sideloaded release builds signed with the release keystore cannot be
+            // upgraded in place by a debug APK (INSTALL_FAILED_UPDATE_INCOMPATIBLE).
+            // The suffixed application id lets the debug build coexist with them.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
