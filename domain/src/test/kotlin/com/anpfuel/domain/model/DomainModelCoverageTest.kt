@@ -199,6 +199,8 @@ class DomainModelCoverageTest {
         val preferences = UserPreferences()
 
         assertEquals(UserPreferences.DEFAULT_RETENTION_WEEKS, preferences.stationDetailRetentionWeeks)
+        assertEquals(UserPreferences.DEFAULT_NEAREST_STATION_RADIUS_KM, preferences.nearestStationRadiusKm)
+        assertEquals(3000.0, preferences.getNearestStationRadiusMeters())
         assertEquals("", preferences.localeTag)
         assertFalse(preferences.localeUserSelected)
         assertTrue(preferences.syncStationDetail)
@@ -214,6 +216,7 @@ class DomainModelCoverageTest {
             localeTag = "pt-BR",
             syncStationDetail = true,
             stationDetailRetentionWeeks = 8,
+            nearestStationRadiusKm = 10,
             autoSyncOnWifi = false,
             showPriceHistory = false,
             onboardingCompleted = true,
@@ -225,6 +228,8 @@ class DomainModelCoverageTest {
         assertEquals("pt-BR", updated.localeTag)
         assertTrue(updated.syncStationDetail)
         assertEquals(8, updated.stationDetailRetentionWeeks)
+        assertEquals(10, updated.nearestStationRadiusKm)
+        assertEquals(10_000.0, updated.getNearestStationRadiusMeters())
         assertFalse(updated.autoSyncOnWifi)
         assertFalse(updated.showPriceHistory)
         assertTrue(updated.onboardingCompleted)

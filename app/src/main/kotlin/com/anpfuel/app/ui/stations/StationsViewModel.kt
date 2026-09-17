@@ -8,13 +8,17 @@ import com.anpfuel.application.usecase.location.SelectLocationUseCase
 import com.anpfuel.application.usecase.network.ObserveNetworkConnectivityUseCase
 import com.anpfuel.application.usecase.price.GetStationPricesUseCase
 import com.anpfuel.application.usecase.price.StationPricesOutcome
+import com.anpfuel.app.location.LocationPermissionHandler
 import com.anpfuel.application.usecase.station.BuildStationNavigationQueryUseCase
+import com.anpfuel.application.usecase.station.FindNearestBestPriceStationUseCase
+import com.anpfuel.application.usecase.station.FindNearestStationOutcome
 import com.anpfuel.application.usecase.sync.DownloadStationDetailUseCase
 import com.anpfuel.app.mapper.StationPriceUiMapper
 import com.anpfuel.app.ui.model.StationPriceUiModel
 import com.anpfuel.domain.event.SyncJobOutcome
 import com.anpfuel.domain.valueobject.BrazilianState
 import com.anpfuel.domain.model.RetailStation
+import com.anpfuel.domain.valueobject.DeviceLocation
 import com.anpfuel.domain.valueobject.FuelProduct
 import com.anpfuel.domain.valueobject.SurveyWeek
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +37,7 @@ import kotlinx.coroutines.launch
 data class StationsUiState(
     val isLoading: Boolean = true,
     val isDownloading: Boolean = false,
+    val isFindingNearest: Boolean = false,
     val isOffline: Boolean = false,
     val selectedFuelProduct: FuelProduct = FuelProduct.GASOLINE_REGULAR,
     val municipality: String? = null,
@@ -50,11 +55,22 @@ sealed interface StationsNavigationEffect {
     data class LaunchMaps(val navigationQuery: String) : StationsNavigationEffect
 }
 
+/**
+ * UC-015 — one-shot user feedback for the nearest best-price station action.
+ */
+enum class StationsMessage {
+    NearestNeedsLocation,
+    NearestNoFix,
+    NearestUnavailable,
+}
+
 @HiltViewModel
 class StationsViewModel @Inject constructor(
     private val getStationPricesUseCase: GetStationPricesUseCase,
     private val buildStationNavigationQueryUseCase: BuildStationNavigationQueryUseCase,
     private val downloadStationDetailUseCase: DownloadStationDetailUseCase,
+    private val findNearestBestPriceStationUseCase: FindNearestBestPriceStationUseCase,
+    private val locationPermissionHandler: LocationPermissionHandler,
     private val selectLocationUseCase: SelectLocationUseCase,
     observeNetworkConnectivityUseCase: ObserveNetworkConnectivityUseCase,
     savedStateHandle: SavedStateHandle,
@@ -71,6 +87,12 @@ class StationsViewModel @Inject constructor(
 
     private val _navigationEffects = MutableSharedFlow<StationsNavigationEffect>(extraBufferCapacity = 1)
     val navigationEffects: SharedFlow<StationsNavigationEffect> = _navigationEffects.asSharedFlow()
+
+    private val _messages = MutableSharedFlow<StationsMessage>(extraBufferCapacity = 1)
+    val messages: SharedFlow<StationsMessage> = _messages.asSharedFlow()
+
+    private val _locationPermissionRequest = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val locationPermissionRequest: SharedFlow<Unit> = _locationPermissionRequest.asSharedFlow()
 
     private val stationByCnpj = mutableMapOf<String, RetailStation>()
 
@@ -92,6 +114,82 @@ class StationsViewModel @Inject constructor(
         }
         _uiState.update { it.copy(selectedFuelProduct = fuelProduct) }
         loadForFuel(fuelProduct, locale)
+    }
+
+    /**
+     * UC-015 — resolves the nearest best-price station for the selected fuel.
+     * Requests the location permission when it was never granted (UC-012 already does this once).
+     */
+    fun onFindNearestStation() {
+        if (_uiState.value.isFindingNearest) {
+            return
+        }
+
+        if (!locationPermissionHandler.hasLocationPermission()) {
+            _locationPermissionRequest.tryEmit(Unit)
+            return
+        }
+
+        viewModelScope.launch {
+            // UC-015: cached fixes can be days old (a week-old fix once pointed at the
+            // wrong region), so request a fresh fix with a bounded timeout first.
+            val deviceLocation = locationPermissionHandler.getCurrentLocation()
+            if (deviceLocation == null) {
+                _messages.tryEmit(StationsMessage.NearestNoFix)
+                return@launch
+            }
+            findNearestStation(deviceLocation)
+        }
+    }
+
+    fun onLocationPermissionGranted() {
+        viewModelScope.launch {
+            val deviceLocation = locationPermissionHandler.getCurrentLocation()
+            if (deviceLocation == null) {
+                _messages.tryEmit(StationsMessage.NearestNoFix)
+                return@launch
+            }
+            findNearestStation(deviceLocation)
+        }
+    }
+
+    fun onLocationPermissionDenied() {
+        _messages.tryEmit(StationsMessage.NearestNeedsLocation)
+    }
+
+    private fun findNearestStation(deviceLocation: DeviceLocation) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isFindingNearest = true, error = null, errorMessage = null) }
+
+            runCatching {
+                findNearestBestPriceStationUseCase(
+                    fuelProduct = _uiState.value.selectedFuelProduct,
+                    deviceLocation = deviceLocation.coordinates,
+                )
+            }.onSuccess { outcome ->
+                _uiState.update { it.copy(isFindingNearest = false) }
+                when (outcome) {
+                    is FindNearestStationOutcome.Success ->
+                        _navigationEffects.emit(
+                            StationsNavigationEffect.LaunchMaps(outcome.navigationQuery),
+                        )
+
+                    FindNearestStationOutcome.NoStationWithinRadius,
+                    FindNearestStationOutcome.StationDetailMissing,
+                    FindNearestStationOutcome.NoStations,
+                    FindNearestStationOutcome.GeocodingFailed,
+                    -> _messages.emit(StationsMessage.NearestUnavailable)
+                }
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isFindingNearest = false,
+                        error = AppErrorResolver.fromThrowable(error),
+                        errorMessage = error.message ?: error.javaClass.simpleName,
+                    )
+                }
+            }
+        }
     }
 
     fun onNavigateToStation(cnpjDigits: String) {

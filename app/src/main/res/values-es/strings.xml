@@ -169,6 +169,10 @@
     <string name="stations_collected_at_label">Recopilado: %1$s</string>
     <string name="stations_navigate_action">Ir</string>
     <string name="stations_navigate_no_app">No se encontró ninguna app de mapas para abrir indicaciones.</string>
+    <string name="stations_nearest_action">Más barato cerca de mí</string>
+    <string name="stations_nearest_needs_location">Activa la ubicación para encontrar la estación más cercana.</string>
+    <string name="stations_nearest_no_fix">Sin señal de GPS por ahora. Activa la ubicación e inténtalo de nuevo.</string>
+    <string name="stations_nearest_failed">No se pudo encontrar una estación cercana. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="a11y_station_navigate">Ir a %1$s</string>
     <string name="prices_view_stations">Ver precios por estación</string>
 
@@ -251,6 +255,8 @@
     <string name="settings_show_price_history">Mostrar historial de precios</string>
     <string name="settings_retention_weeks">Retención de datos de estaciones</string>
     <string name="settings_retention_weeks_option">%1$d semanas</string>
+    <string name="settings_nearest_station_radius">Radio de búsqueda de "Más barato cerca de mí"</string>
+    <string name="settings_nearest_station_radius_option">%1$d km</string>
     <string name="settings_storage_usage">Uso de almacenamiento</string>
     <string name="settings_storage_summary_rows">Filas de resumen: %1$s</string>
     <string name="settings_storage_station_rows">Filas de estaciones: %1$s</string>

@@ -170,6 +170,10 @@
     <string name="stations_collected_at_label">Collected: %1$s</string>
     <string name="stations_navigate_action">Navigate</string>
     <string name="stations_navigate_no_app">Could not open Google Maps. Install it or use a browser.</string>
+    <string name="stations_nearest_action">Cheapest near me</string>
+    <string name="stations_nearest_needs_location">Turn on location to find the nearest station.</string>
+    <string name="stations_nearest_no_fix">No GPS signal right now. Turn on location and try again.</string>
+    <string name="stations_nearest_failed">Could not find a nearby station. Check your connection and try again.</string>
     <string name="a11y_station_navigate">Navigate to %1$s</string>
     <string name="prices_view_stations">View station prices</string>
 
@@ -252,6 +256,8 @@
     <string name="settings_show_price_history">Show price history</string>
     <string name="settings_retention_weeks">Station data retention</string>
     <string name="settings_retention_weeks_option">%1$d weeks</string>
+    <string name="settings_nearest_station_radius">Search radius for "Cheapest near me"</string>
+    <string name="settings_nearest_station_radius_option">%1$d km</string>
     <string name="settings_storage_usage">Storage usage</string>
     <string name="settings_storage_summary_rows">Summary rows: %1$s</string>
     <string name="settings_storage_station_rows">Station rows: %1$s</string>

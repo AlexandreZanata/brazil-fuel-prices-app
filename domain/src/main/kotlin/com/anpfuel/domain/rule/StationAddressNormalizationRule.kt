@@ -4,7 +4,7 @@ import com.anpfuel.domain.model.RetailStation
 import com.anpfuel.domain.valueobject.BrazilianState
 
 /**
- * BR-026 — Builds a [StationNavigationQuery] string for external map apps from ANP station data.
+ * BR-026 — Builds query strings for external map apps and geocoding services from ANP station data.
  */
 object StationAddressNormalizationRule {
 
@@ -35,14 +35,46 @@ object StationAddressNormalizationRule {
                 query = appendLocationIfMissing(
                     address = normalizedAddress,
                     municipality = municipality,
-                    state = state,
+                    stateLabel = state.abbreviation,
                 ),
             )
         } else {
-            "${displayName}, ${formatLocationSuffix(municipality, state)}"
+            "${displayName}, ${formatLocationSuffix(municipality, state.abbreviation)}"
         }
 
         return appendCountry(queryBody)
+    }
+
+    /**
+     * UC-015 — Builds a Nominatim geocoding query from ANP station data.
+     *
+     * Unlike [buildNavigationQuery], the station trade name is never included: Nominatim
+     * resolves street addresses, not business names, and a leading business name can make
+     * the service return no results at all. Full state names are used because
+     * abbreviations are not matched in street queries.
+     */
+    fun buildGeocodingQuery(
+        station: RetailStation,
+        preferredMunicipality: String? = null,
+        preferredState: BrazilianState? = null,
+    ): String {
+        val municipality = station.municipality.ifBlank {
+            preferredMunicipality?.trim().orEmpty()
+        }
+        val state = station.state
+        val normalizedAddress = normalizeAddress(station.address)
+
+        // Comma-separated parts match the format Nominatim resolves reliably
+        // (verified against the live API): street, municipality, state, country.
+        val addressIncludesMunicipality = municipality.isNotBlank() &&
+            normalizedAddress.contains(municipality, ignoreCase = true)
+        val parts = buildList {
+            if (isAddressSufficient(normalizedAddress)) add(normalizedAddress)
+            if (municipality.isNotBlank() && !addressIncludesMunicipality) add(municipality)
+            add(state.displayName)
+        }
+
+        return appendCountry(parts.joinToString(", "))
     }
 
     internal fun prependStationNameIfMissing(displayName: String, query: String): String {
@@ -58,22 +90,22 @@ object StationAddressNormalizationRule {
     internal fun isAddressSufficient(normalizedAddress: String): Boolean =
         normalizedAddress.length >= MIN_SUFFICIENT_ADDRESS_LENGTH
 
-    private fun formatLocationSuffix(municipality: String, state: BrazilianState): String =
-        "$municipality - ${state.abbreviation}"
+    private fun formatLocationSuffix(municipality: String, stateLabel: String): String =
+        "$municipality - $stateLabel"
 
     private fun appendLocationIfMissing(
         address: String,
         municipality: String,
-        state: BrazilianState,
+        stateLabel: String,
     ): String {
         val hasMunicipality = municipality.isNotBlank() &&
             address.contains(municipality, ignoreCase = true)
-        val hasState = address.contains(state.abbreviation, ignoreCase = true)
+        val hasState = address.contains(stateLabel, ignoreCase = true)
 
         return when {
             hasMunicipality && hasState -> address
-            hasMunicipality -> "$address, ${state.abbreviation}"
-            else -> "$address, ${formatLocationSuffix(municipality, state)}"
+            hasMunicipality -> "$address, $stateLabel"
+            else -> "$address, ${formatLocationSuffix(municipality, stateLabel)}"
         }
     }
 

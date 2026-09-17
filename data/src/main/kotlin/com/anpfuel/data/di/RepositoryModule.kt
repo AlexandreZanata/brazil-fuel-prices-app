@@ -11,10 +11,13 @@ import com.anpfuel.data.local.catalog.MunicipalityCatalogSeeder
 import com.anpfuel.data.local.fts.MunicipalityFtsIndexer
 import com.anpfuel.data.local.importing.ImportAuditLogger
 import com.anpfuel.data.local.importing.PriceTableBatchImporter
+import com.anpfuel.data.local.preferences.AddressGeocodeCacheDataStore
+import com.anpfuel.data.local.preferences.AddressGeocodeCacheStore
 import com.anpfuel.data.local.preferences.GeocodeCacheDataStore
 import com.anpfuel.data.local.preferences.GeocodeCacheStore
 import com.anpfuel.data.local.preferences.DataStorePriceTableMetadataStore
 import com.anpfuel.data.local.preferences.PriceTableMetadataStore
+import com.anpfuel.data.repository.AddressGeocodeRepositoryImpl
 import com.anpfuel.data.repository.AveragePriceRepositoryImpl
 import com.anpfuel.data.repository.CacheRepositoryImpl
 import com.anpfuel.data.repository.MunicipalityCatalogRepositoryImpl
@@ -30,6 +33,7 @@ import com.anpfuel.data.repository.UserPreferencesRepositoryImpl
 import com.anpfuel.data.repository.ReverseGeocodeRepositoryImpl
 import com.anpfuel.data.repository.VehicleRepositoryImpl
 import com.anpfuel.data.notification.PriceDropNotificationRepositoryImpl
+import com.anpfuel.domain.repository.AddressGeocodeRepository
 import com.anpfuel.domain.repository.ReverseGeocodeRepository
 import com.anpfuel.domain.repository.VehicleRepository
 import com.anpfuel.domain.repository.PriceDropNotificationRepository
@@ -97,6 +101,18 @@ abstract class RepositoryModule {
     abstract fun bindReverseGeocodeRepository(
         impl: ReverseGeocodeRepositoryImpl,
     ): ReverseGeocodeRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAddressGeocodeCacheStore(
+        impl: AddressGeocodeCacheDataStore,
+    ): AddressGeocodeCacheStore
+
+    @Binds
+    @Singleton
+    abstract fun bindAddressGeocodeRepository(
+        impl: AddressGeocodeRepositoryImpl,
+    ): AddressGeocodeRepository
 
     @Binds
     @Singleton

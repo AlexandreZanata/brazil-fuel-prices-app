@@ -120,4 +120,50 @@ class StationAddressNormalizationRuleTest {
 
         assertEquals("Posto Sul, Rua A, Porto Alegre - RS, Brazil", query)
     }
+
+    @Test
+    fun buildsGeocodingQueryWithoutStationNameAndWithFullStateName() {
+        val query = StationAddressNormalizationRule.buildGeocodingQuery(
+            station = campoGrandeStation,
+        )
+
+        assertEquals(
+            "RUA AMARO CASTRO LIMA, CAMPO GRANDE, Mato Grosso do Sul, Brazil",
+            query,
+        )
+    }
+
+    @Test
+    fun geocodingQueryUsesFullStateNameWhenAddressContainsMunicipality() {
+        val station = RetailStation.create(
+            cnpj = Cnpj.parse("12345678000195"),
+            legalName = "Example SA",
+            tradeName = "Posto Centro",
+            address = "Av. Brasil, 1000, Curitiba",
+            municipality = "CURITIBA",
+            state = BrazilianState.PARANA,
+            brand = "BR",
+        )
+
+        val query = StationAddressNormalizationRule.buildGeocodingQuery(station = station)
+
+        assertEquals("Av. Brasil, 1000, Curitiba, Paraná, Brazil", query)
+    }
+
+    @Test
+    fun geocodingQueryFallsBackToMunicipalityAndFullStateWhenAddressIsInsufficient() {
+        val station = RetailStation.create(
+            cnpj = Cnpj.parse("12345678000195"),
+            legalName = "Example SA",
+            tradeName = "Posto Centro",
+            address = "N/A",
+            municipality = "CURITIBA",
+            state = BrazilianState.PARANA,
+            brand = "BR",
+        )
+
+        val query = StationAddressNormalizationRule.buildGeocodingQuery(station = station)
+
+        assertEquals("CURITIBA, Paraná, Brazil", query)
+    }
 }

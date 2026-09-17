@@ -170,6 +170,10 @@
     <string name="stations_collected_at_label">Coleta: %1$s</string>
     <string name="stations_navigate_action">Ir</string>
     <string name="stations_navigate_no_app">Não foi possível abrir o Google Maps. Instale o app ou use o navegador.</string>
+    <string name="stations_nearest_action">Mais barato perto de mim</string>
+    <string name="stations_nearest_needs_location">Ative a localização para encontrar o posto mais próximo.</string>
+    <string name="stations_nearest_no_fix">Sem sinal de GPS agora. Ative a localização e tente novamente.</string>
+    <string name="stations_nearest_failed">Não foi possível encontrar um posto próximo. Verifique sua conexão e tente de novo.</string>
     <string name="a11y_station_navigate">Ir para %1$s</string>
     <string name="prices_view_stations">Ver preços por posto</string>
 
@@ -252,6 +256,8 @@
     <string name="settings_show_price_history">Exibir histórico de preços</string>
     <string name="settings_retention_weeks">Retenção de dados de postos</string>
     <string name="settings_retention_weeks_option">%1$d semanas</string>
+    <string name="settings_nearest_station_radius">Distância de busca do "Mais barato perto de mim"</string>
+    <string name="settings_nearest_station_radius_option">%1$d km</string>
     <string name="settings_storage_usage">Uso de armazenamento</string>
     <string name="settings_storage_summary_rows">Linhas de resumo: %1$s</string>
     <string name="settings_storage_station_rows">Linhas de postos: %1$s</string>

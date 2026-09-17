@@ -77,10 +77,13 @@ domain/src/main/kotlin/com/anpfuel/domain/
 │   ├── BrazilianRegion.kt
 │   ├── GeographicScope.kt
 │   ├── PriceAmount.kt
+│   ├── GeoCoordinates.kt     # UC-015
 │   └── Cnpj.kt
 ├── rule/                     # Named business rules
 │   ├── SurveyWeekValidationRule.kt    # BR-001
 │   ├── FuelProductNormalizationRule.kt # BR-002
+│   ├── GeoDistanceRule.kt             # UC-015 (Haversine)
+│   ├── NearestBestPriceStationRule.kt # BR-028
 │   └── SyncJobConcurrencyRule.kt      # BR-015
 ├── state/                    # State machines
 │   ├── SyncJobState.kt
@@ -96,6 +99,8 @@ domain/src/main/kotlin/com/anpfuel/domain/
 │   ├── AveragePriceRepository.kt
 │   ├── StationPriceRepository.kt
 │   ├── MunicipalitySearchRepository.kt
+│   ├── ReverseGeocodeRepository.kt     # UC-012
+│   ├── AddressGeocodeRepository.kt     # UC-015
 │   └── UserPreferencesRepository.kt
 └── exception/
     └── DomainException.kt
@@ -123,7 +128,8 @@ application/src/main/kotlin/com/anpfuel/application/
 │   │   ├── SearchMunicipalityUseCase.kt       # UC-004
 │   │   └── ResolveDeviceLocationUseCase.kt    # UC-012
 │   ├── station/
-│   │   └── BuildStationNavigationQueryUseCase.kt # UC-013
+│   │   ├── BuildStationNavigationQueryUseCase.kt      # UC-013
+│   │   └── FindNearestBestPriceStationUseCase.kt      # UC-015
 │   ├── alert/
 │   │   ├── ConfigurePriceDropAlertUseCase.kt  # UC-014
 │   │   └── EvaluatePriceDropAlertsUseCase.kt  # UC-014
@@ -154,11 +160,13 @@ data/src/main/kotlin/com/anpfuel/data/
 │   ├── entity/                               # Room entities (infra, not domain)
 │   └── preferences/
 │       ├── UserPreferencesDataStore.kt
-│       └── GeocodeCacheDataStore.kt          # UC-012 Nominatim cache
+│       ├── GeocodeCacheDataStore.kt          # UC-012 Nominatim cache
+│       └── AddressGeocodeCacheDataStore.kt   # UC-015 Nominatim cache
 ├── remote/
 │   ├── AnpListingScraper.kt                  # Jsoup + OkHttp
 │   ├── AnpFileDownloader.kt                  # OkHttp streaming download
-│   └── NominatimReverseGeocodeClient.kt      # UC-012
+│   ├── NominatimReverseGeocodeClient.kt      # UC-012
+│   └── NominatimSearchClient.kt              # UC-015 forward geocoding
 ├── parser/
 │   ├── StreamingXlsxParser.kt                # Low-level ZIP/XML streaming
 │   ├── WeeklySummarySheetParser.kt           # resumo_semanal_lpc
@@ -174,7 +182,8 @@ data/src/main/kotlin/com/anpfuel/data/
 │   ├── MunicipalitySearchRepositoryImpl.kt
 │   ├── UserPreferencesRepositoryImpl.kt
 │   ├── VehicleRepositoryImpl.kt              # UC-010
-│   └── ReverseGeocodeRepositoryImpl.kt       # UC-012
+│   ├── ReverseGeocodeRepositoryImpl.kt       # UC-012
+│   └── AddressGeocodeRepositoryImpl.kt       # UC-015
 ├── worker/
 │   ├── SyncWorker.kt                         # WorkManager — UC-001
 │   ├── RetentionCleanupWorker.kt             # BR-013
@@ -284,6 +293,7 @@ sequenceDiagram
 | UC-012 Device location | `ResolveDeviceLocationUseCase` | `ReverseGeocodeRepository`, `MunicipalityCatalog` port | Nominatim, DataStore cache |
 | UC-013 Station navigation | `BuildStationNavigationQueryUseCase` | Domain rules only | `:app` Intents |
 | UC-014 Price drop alerts | `EvaluatePriceDropAlertsUseCase` | `VehicleRepository`, price repos | WorkManager, NotificationManager |
+| UC-015 Nearest station | `FindNearestBestPriceStationUseCase` | `AddressGeocodeRepository`, price repos | Nominatim `/search`, DataStore cache |
 
 ---
 
@@ -522,9 +532,9 @@ Parser tests **must** run against real files in `data/samples/` (see [data-sourc
 | Concern | Layer | Implementation |
 |---------|-------|----------------|
 | TLS for ANP downloads | `:data` | OkHttp — HTTPS only, no cleartext |
-| TLS for Nominatim | `:data` | OkHttp — HTTPS only (UC-012) |
+| TLS for Nominatim | `:data` | OkHttp — HTTPS only (UC-012, UC-015) |
 | No PII cloud storage | `:domain` | No user accounts; vehicles local only |
-| Ephemeral GPS | `:app` | One-shot location; coordinates not persisted |
+| Ephemeral GPS | `:app` | One-shot location; coordinates not persisted (UC-012, UC-015) |
 | CNPJ is public data | `:data` | Stored as-is from ANP |
 | Local preferences | `:data` | DataStore (not SharedPreferences) |
 | Local notifications | `:data` / `:app` | NotificationManager — UC-014, no FCM |

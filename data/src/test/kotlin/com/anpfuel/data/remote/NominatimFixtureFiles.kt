@@ -6,6 +6,8 @@ internal object NominatimFixtureFiles {
 
     fun readReverseCuritiba(): String = resolve(NOMINATIM_REVERSE_CURITIBA).readText()
 
+    fun readSearchCuritiba(): String = resolve(NOMINATIM_SEARCH_CURITIBA).readText()
+
     fun resolve(fileName: String): File {
         val candidates = listOf(
             File("fixtures/$fileName"),
@@ -18,4 +20,6 @@ internal object NominatimFixtureFiles {
     }
 
     const val NOMINATIM_REVERSE_CURITIBA = "nominatim-reverse-curitiba.json"
+
+    const val NOMINATIM_SEARCH_CURITIBA = "nominatim-search-curitiba.json"
 }

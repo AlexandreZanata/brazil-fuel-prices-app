@@ -169,6 +169,10 @@
     <string name="stations_collected_at_label">Collecté : %1$s</string>
     <string name="stations_navigate_action">Y aller</string>
     <string name="stations_navigate_no_app">Aucune application de cartes trouvée pour ouvrir l\'itinéraire.</string>
+    <string name="stations_nearest_action">Le moins cher près de moi</string>
+    <string name="stations_nearest_needs_location">Activez la localisation pour trouver la station la plus proche.</string>
+    <string name="stations_nearest_no_fix">Pas de signal GPS pour le moment. Activez la localisation puis réessayez.</string>
+    <string name="stations_nearest_failed">Impossible de trouver une station à proximité. Vérifiez votre connexion et réessayez.</string>
     <string name="a11y_station_navigate">Aller à %1$s</string>
     <string name="prices_view_stations">Voir les prix par station</string>
 
@@ -251,6 +255,8 @@
     <string name="settings_show_price_history">Afficher l\'historique des prix</string>
     <string name="settings_retention_weeks">Conservation des données des stations</string>
     <string name="settings_retention_weeks_option">%1$d semaines</string>
+    <string name="settings_nearest_station_radius">Rayon de recherche de « Moins cher près de moi »</string>
+    <string name="settings_nearest_station_radius_option">%1$d km</string>
     <string name="settings_storage_usage">Utilisation du stockage</string>
     <string name="settings_storage_summary_rows">Lignes de résumé : %1$s</string>
     <string name="settings_storage_station_rows">Lignes de stations : %1$s</string>
