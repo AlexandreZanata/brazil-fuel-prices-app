@@ -169,6 +169,10 @@
     <string name="stations_collected_at_label">Erfasst: %1$s</string>
     <string name="stations_navigate_action">Route</string>
     <string name="stations_navigate_no_app">Keine Karten-App zum Öffnen der Route gefunden.</string>
+    <string name="stations_nearest_action">Günstigste in meiner Nähe</string>
+    <string name="stations_nearest_needs_location">Aktiviere den Standort, um die nächste Tankstelle zu finden.</string>
+    <string name="stations_nearest_no_fix">Derzeit kein GPS-Signal. Aktiviere die Standortbestimmung und versuche es erneut.</string>
+    <string name="stations_nearest_failed">Keine Tankstelle in der Nähe gefunden. Prüfe deine Verbindung und versuche es erneut.</string>
     <string name="a11y_station_navigate">Route zu %1$s</string>
     <string name="prices_view_stations">Tankstellenpreise anzeigen</string>
 
@@ -251,6 +255,8 @@
     <string name="settings_show_price_history">Preisverlauf anzeigen</string>
     <string name="settings_retention_weeks">Aufbewahrung von Tankstellendaten</string>
     <string name="settings_retention_weeks_option">%1$d Wochen</string>
+    <string name="settings_nearest_station_radius">Suchradius für „Günstigstes in der Nähe“</string>
+    <string name="settings_nearest_station_radius_option">%1$d km</string>
     <string name="settings_storage_usage">Speichernutzung</string>
     <string name="settings_storage_summary_rows">Zusammenfassungszeilen: %1$s</string>
     <string name="settings_storage_station_rows">Tankstellenzeilen: %1$s</string>

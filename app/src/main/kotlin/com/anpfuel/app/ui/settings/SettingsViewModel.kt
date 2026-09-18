@@ -144,6 +144,17 @@ class SettingsViewModel @Inject constructor(
         updatePreferences(_uiState.value.preferences.copy(stationDetailRetentionWeeks = weeks))
     }
 
+    /** UC-015 — search radius for the nearest best-price station (BR-028). */
+    fun onNearestStationRadiusSelected(radiusKm: Int) {
+        if (radiusKm !in UserPreferences.NEAREST_STATION_RADIUS_KM_OPTIONS) {
+            return
+        }
+        if (_uiState.value.preferences.nearestStationRadiusKm == radiusKm) {
+            return
+        }
+        updatePreferences(_uiState.value.preferences.copy(nearestStationRadiusKm = radiusKm))
+    }
+
     fun syncNow() {
         if (_uiState.value.isSyncing) {
             return

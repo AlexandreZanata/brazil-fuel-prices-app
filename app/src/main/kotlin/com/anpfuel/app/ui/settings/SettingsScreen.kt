@@ -74,6 +74,7 @@ fun SettingsScreen(
         onAutoSyncOnWifiChanged = viewModel::onAutoSyncOnWifiChanged,
         onShowPriceHistoryChanged = viewModel::onShowPriceHistoryChanged,
         onRetentionWeeksSelected = viewModel::onRetentionWeeksSelected,
+        onNearestStationRadiusSelected = viewModel::onNearestStationRadiusSelected,
         onSyncNow = viewModel::syncNow,
         onClearStationCache = viewModel::clearStationCache,
         onRequestClearAllCache = viewModel::requestClearAllCache,
@@ -97,6 +98,7 @@ private fun SettingsContent(
     onAutoSyncOnWifiChanged: (Boolean) -> Unit,
     onShowPriceHistoryChanged: (Boolean) -> Unit,
     onRetentionWeeksSelected: (Int) -> Unit,
+    onNearestStationRadiusSelected: (Int) -> Unit,
     onSyncNow: () -> Unit,
     onClearStationCache: () -> Unit,
     onRequestClearAllCache: () -> Unit,
@@ -226,6 +228,28 @@ private fun SettingsContent(
                                             text = stringResource(
                                                 R.string.settings_retention_weeks_option,
                                                 weeks,
+                                            ),
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    }
+
+                    SettingsSection(title = stringResource(R.string.settings_nearest_station_radius)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            for (radiusKm in UserPreferences.NEAREST_STATION_RADIUS_KM_OPTIONS) {
+                                FilterChip(
+                                    selected = uiState.preferences.nearestStationRadiusKm == radiusKm,
+                                    onClick = { onNearestStationRadiusSelected(radiusKm) },
+                                    label = {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.settings_nearest_station_radius_option,
+                                                radiusKm,
                                             ),
                                         )
                                     },
@@ -450,6 +474,7 @@ private fun SettingsScreenPreview() {
             onAutoSyncOnWifiChanged = {},
             onShowPriceHistoryChanged = {},
             onRetentionWeeksSelected = {},
+            onNearestStationRadiusSelected = {},
             onSyncNow = {},
             onClearStationCache = {},
             onRequestClearAllCache = {},

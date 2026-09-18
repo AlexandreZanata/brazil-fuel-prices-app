@@ -18,6 +18,7 @@ ANP Fuel Prices does **not collect, transmit, or sell personal data** to app-own
 | Sync and storage settings | App configuration | No |
 | Price drop alert preferences | Local notifications after weekly sync | No |
 | Reverse geocode cache (rounded coordinates → city) | Avoid repeat Nominatim calls (BR-021) | No |
+| Address geocode cache (station address → coordinates) | Avoid repeat Nominatim calls when finding the nearest station (UC-015) | No |
 
 ## Data we do not collect
 
@@ -32,7 +33,7 @@ If you choose **Use my location** during onboarding:
 
 - The app requests Android location permission and reads your position **once** to resolve your municipality.
 - Raw latitude/longitude is **not saved** on the device.
-- The app may call the public [Nominatim](https://nominatim.openstreetmap.org/) reverse geocoding API (OpenStreetMap) over HTTPS.
+- The app may call the public [Nominatim](https://nominatim.openstreetmap.org/) API (OpenStreetMap) over HTTPS: reverse geocoding to resolve your city (UC-012) and forward geocoding of candidate **station addresses** to find the nearest station (UC-015). Station addresses are public ANP data, not personal data.
 - A successful result (state + municipality) is saved as your preferred city, same as manual selection.
 - Rounded coordinate → city mappings may be cached locally to reduce network use.
 
@@ -51,7 +52,7 @@ If you enable price drop alerts on a vehicle:
 | Destination | When | Data sent |
 |-------------|------|-----------|
 | **gov.br / ANP** | Sync weekly price tables | None (anonymous HTTP GET of public files) |
-| **nominatim.openstreetmap.org** | Optional reverse geocode (UC-012) | Latitude, longitude, app User-Agent |
+| **nominatim.openstreetmap.org** | Optional reverse geocode (UC-012) and station address geocode (UC-015) | Latitude, longitude or station address, app User-Agent |
 
 No third-party analytics or tracking services are used.
 

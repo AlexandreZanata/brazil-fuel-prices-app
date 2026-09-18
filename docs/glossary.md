@@ -32,10 +32,13 @@
 | **VehiclePriceSource** | `VehiclePriceSourceMode` plus optional `Cnpj` when mode is `SPECIFIC_STATION`. |
 | **PriceDropAlert** | User preference on a `Vehicle` to notify when fuel price drops vs previous imported week. |
 | **AlertPriceSource** | Price reference for alerts — same semantics as `VehiclePriceSourceMode` (+ optional CNPJ). |
-| **DeviceLocation** | Ephemeral latitude/longitude from Android location APIs; not persisted as PII. |
+| **DeviceLocation** | Ephemeral latitude/longitude from Android location APIs; not persisted as PII (UC-012, UC-015). |
+| **GeoCoordinates** | Validated latitude/longitude pair (WGS-84) used for station distance calculation (UC-015). |
 | **ReverseGeocodeResult** | Resolved `BrazilianState` and municipality name from coordinates. |
+| **AddressGeocode** | Resolution of a normalized address into `GeoCoordinates` through Nominatim `/search` (`AddressGeocodeRepository`, UC-015). |
+| **NearestStationRecommendation** | Selected `RetailStation` for UC-015: station, unit price, and distance in meters from the device. |
 | **StationNavigationQuery** | Normalized address string plus municipality and state for external map apps. |
-| **GeocodingAttribution** | OSM/Nominatim attribution requirement when reverse geocoding is used (BR-021). |
+| **GeocodingAttribution** | OSM/Nominatim attribution requirement whenever geocoding is used — reverse (UC-012) or forward (UC-015) (BR-021). |
 
 ## FuelProduct Enum
 
@@ -270,6 +273,17 @@ Shared enum values:
 **WHEN** attempting to add another  
 **THEN** reject the operation with an informative UI message  
 **AND** do not persist a fourth vehicle
+
+### BR-028 — Nearest Best-Price Station
+**GIVEN** imported station prices for one `FuelProduct` and the user's `DeviceLocation`  
+**WHEN** the user requests the nearest best-price station (UC-015)  
+**THEN** consider at most 8 cheapest candidates  
+**AND** resolve candidate addresses through Nominatim with local cache and max 1 request per second (BR-021)  
+**AND** accept only candidates priced within 2% above the cheapest  
+**AND** accept only candidates within the user-configured radius (3/5/10/15 km, default 3 km) of the device location  
+**AND** select the nearest candidate inside that band and radius, breaking ties by lowest price  
+**AND** report failure — never a partial guess — when no candidate resolves, geocoding fails, or no candidate lies within the radius  
+**AND** never persist device coordinates
 
 ## Acronyms
 

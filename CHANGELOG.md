@@ -4,6 +4,31 @@ All notable changes to this project are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **Find nearest best-price station (UC-015)** — new **Cheapest near me** action on the station list recommends the cheapest station close to the user and opens Google Maps on it (BR-028)
+- Forward geocoding (address → coordinates) through Nominatim `/search` with local cache and the 1 request/second throttle (BR-021), plus the `AddressGeocodeRepository` port and `GeoCoordinates` value object
+- `GeoDistanceRule` (Haversine) and `NearestBestPriceStationRule` domain rules, covered by unit tests
+- **Configurable search radius for "Cheapest near me"** — new Settings section with 3/5/10/15 km options (default 3 km), persisted with the other preferences (BR-028)
+
+### Fixed
+
+- **Nearest best-price station no longer fails on valid addresses** — geocoding queries are now
+  address-only with the full state name ("Mato Grosso do Sul", not "MS"): Nominatim returns no
+  results for station trade names or state abbreviations, which caused the generic location error
+- The nearest-station search requests a fresh device fix with a bounded timeout instead of silently
+  reusing stale cached positions (a week-old fix once pointed at the wrong region)
+
+### Changed
+
+- **Nearest best-price station is limited to a configurable search radius (default 3 km)** — when every
+  cheap candidate is farther than that, the app reports "nothing close enough" instead of navigating
+  to a distant station
+- **Home fuel cards open the station list directly** — tapping a `FuelProduct` card on Home now navigates straight to the station list for that fuel (UC-007) instead of the intermediate fuel averages screen; the averages detail (UC-005) remains one tap away via **View full price details**
+- `FuelPriceCard` shows a trailing chevron so the navigation affordance is explicit
+
 ## [3.1.0] - 2026-06-23
 
 ### Added
@@ -77,6 +102,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Offline-first sync with WorkManager
 - i18n: English (default) and Brazilian Portuguese
 
+[Unreleased]: https://github.com/AlexandreZanata/TABELA-ANP-COMBUSTIVEIS/compare/v3.1.0...HEAD
 [3.1.0]: https://github.com/AlexandreZanata/TABELA-ANP-COMBUSTIVEIS/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/AlexandreZanata/TABELA-ANP-COMBUSTIVEIS/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/AlexandreZanata/TABELA-ANP-COMBUSTIVEIS/compare/v1.0.0...v2.0.0

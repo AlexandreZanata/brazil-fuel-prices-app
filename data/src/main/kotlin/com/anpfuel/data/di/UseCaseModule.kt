@@ -20,6 +20,7 @@ import com.anpfuel.application.usecase.settings.GetSettingsUseCase
 import com.anpfuel.application.usecase.settings.GetStorageUsageUseCase
 import com.anpfuel.application.usecase.settings.UpdatePreferencesUseCase
 import com.anpfuel.application.usecase.station.BuildStationNavigationQueryUseCase
+import com.anpfuel.application.usecase.station.FindNearestBestPriceStationUseCase
 import com.anpfuel.application.usecase.sync.AutoDownloadLatestWeekUseCase
 import com.anpfuel.application.usecase.sync.DiscoverSurveyWeekCatalogUseCase
 import com.anpfuel.application.usecase.sync.DownloadStationDetailUseCase
@@ -32,6 +33,7 @@ import com.anpfuel.application.usecase.vehicle.GetVehicleUseCase
 import com.anpfuel.application.usecase.vehicle.GetTankFillCostEstimatesUseCase
 import com.anpfuel.application.usecase.vehicle.ListVehiclesUseCase
 import com.anpfuel.application.usecase.vehicle.SaveVehicleUseCase
+import com.anpfuel.domain.repository.AddressGeocodeRepository
 import com.anpfuel.domain.repository.PriceDropNotificationRepository
 import com.anpfuel.domain.repository.ReverseGeocodeRepository
 import com.anpfuel.domain.repository.VehicleRepository
@@ -283,6 +285,20 @@ object UseCaseModule {
     ): BuildStationNavigationQueryUseCase = BuildStationNavigationQueryUseCase(
         userPreferencesRepository = userPreferencesRepository,
         eventPublisher = eventPublisher,
+    )
+
+    @Provides
+    @Singleton
+    fun provideFindNearestBestPriceStationUseCase(
+        getStationPricesUseCase: GetStationPricesUseCase,
+        addressGeocodeRepository: AddressGeocodeRepository,
+        buildStationNavigationQueryUseCase: BuildStationNavigationQueryUseCase,
+        userPreferencesRepository: UserPreferencesRepository,
+    ): FindNearestBestPriceStationUseCase = FindNearestBestPriceStationUseCase(
+        getStationPricesUseCase = getStationPricesUseCase,
+        addressGeocodeRepository = addressGeocodeRepository,
+        buildStationNavigationQueryUseCase = buildStationNavigationQueryUseCase,
+        userPreferencesRepository = userPreferencesRepository,
     )
 
     @Provides

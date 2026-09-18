@@ -1,40 +1,26 @@
 package com.anpfuel.domain.valueobject
 
-import com.anpfuel.domain.exception.DomainException
-
 /**
- * Ephemeral latitude/longitude from Android location APIs (UC-012).
- * Not persisted as PII — used only for one-shot reverse geocoding.
+ * Ephemeral latitude/longitude from Android location APIs (UC-012, UC-015).
+ * Not persisted as PII — used only for one-shot reverse geocoding (UC-012) and
+ * one-shot nearest-station distance calculation (UC-015).
  */
 class DeviceLocation private constructor(
-    val latitude: Double,
-    val longitude: Double,
+    val coordinates: GeoCoordinates,
 ) {
-    init {
-        if (latitude !in MIN_LATITUDE..MAX_LATITUDE) {
-            throw DomainException("DeviceLocation latitude must be between $MIN_LATITUDE and $MAX_LATITUDE")
-        }
-        if (longitude !in MIN_LONGITUDE..MAX_LONGITUDE) {
-            throw DomainException("DeviceLocation longitude must be between $MIN_LONGITUDE and $MAX_LONGITUDE")
-        }
-    }
+    val latitude: Double get() = coordinates.latitude
+
+    val longitude: Double get() = coordinates.longitude
 
     override fun equals(other: Any?): Boolean =
-        other is DeviceLocation &&
-            latitude == other.latitude &&
-            longitude == other.longitude
+        other is DeviceLocation && coordinates == other.coordinates
 
-    override fun hashCode(): Int = 31 * latitude.hashCode() + longitude.hashCode()
+    override fun hashCode(): Int = coordinates.hashCode()
 
     override fun toString(): String = "DeviceLocation(lat=$latitude, lon=$longitude)"
 
     companion object {
-        const val MIN_LATITUDE = -90.0
-        const val MAX_LATITUDE = 90.0
-        const val MIN_LONGITUDE = -180.0
-        const val MAX_LONGITUDE = 180.0
-
         fun of(latitude: Double, longitude: Double): DeviceLocation =
-            DeviceLocation(latitude, longitude)
+            DeviceLocation(GeoCoordinates.of(latitude, longitude))
     }
 }

@@ -1,18 +1,28 @@
 package com.anpfuel.app.ui.stations
 
+import android.Manifest
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.anpfuel.app.ui.components.AnpScaffold
@@ -20,6 +30,7 @@ import com.anpfuel.app.ui.components.AnpTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -59,6 +70,38 @@ fun StationsScreen(
     val locale = LocalConfiguration.current.locales[0]
     val context = LocalContext.current
 
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { permissions ->
+        if (permissions.values.any { it }) {
+            viewModel.onLocationPermissionGranted()
+        } else {
+            viewModel.onLocationPermissionDenied()
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.locationPermissionRequest.collect {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { message ->
+            val messageRes = when (message) {
+                StationsMessage.NearestNeedsLocation -> R.string.stations_nearest_needs_location
+                StationsMessage.NearestNoFix -> R.string.stations_nearest_no_fix
+                StationsMessage.NearestUnavailable -> R.string.stations_nearest_failed
+            }
+            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_LONG).show()
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.navigationEffects.collect { effect ->
             when (effect) {
@@ -86,6 +129,7 @@ fun StationsScreen(
         uiState = uiState,
         onNavigateBack = onNavigateBack,
         onFuelProductSelected = { fuelProduct -> viewModel.onFuelProductSelected(fuelProduct, locale) },
+        onFindNearestStation = viewModel::onFindNearestStation,
         onDownloadStationDetail = { viewModel.downloadStationDetail(locale) },
         onRetry = { viewModel.load(locale) },
         onWeekChanged = { viewModel.load(locale) },
@@ -100,6 +144,7 @@ private fun StationsContent(
     uiState: StationsUiState,
     onNavigateBack: (() -> Unit)? = null,
     onFuelProductSelected: (FuelProduct) -> Unit,
+    onFindNearestStation: () -> Unit,
     onDownloadStationDetail: () -> Unit,
     onRetry: () -> Unit,
     onWeekChanged: () -> Unit,
@@ -250,6 +295,11 @@ private fun StationsContent(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    NearestStationButton(
+                        isFindingNearest = uiState.isFindingNearest,
+                        onClick = onFindNearestStation,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                     StationsNavigateHintBanner(
                         modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
                     )
@@ -259,9 +309,48 @@ private fun StationsContent(
                             onNavigate = { onNavigateToStation(station.cnpjDigits) },
                         )
                     }
+                    Text(
+                        text = stringResource(R.string.geocoding_osm_attribution),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NearestStationButton(
+    isFindingNearest: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        enabled = !isFindingNearest,
+    ) {
+        if (isFindingNearest) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.MyLocation,
+                contentDescription = null,
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.stations_nearest_action),
+            style = MaterialTheme.typography.labelLarge,
+        )
     }
 }
 
@@ -288,6 +377,7 @@ private fun StationsScreenPreview() {
             ),
             onNavigateBack = {},
             onFuelProductSelected = {},
+            onFindNearestStation = {},
             onDownloadStationDetail = {},
             onRetry = {},
             onWeekChanged = {},

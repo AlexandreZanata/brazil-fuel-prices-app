@@ -169,6 +169,10 @@
     <string name="stations_collected_at_label">収集日：%1$s</string>
     <string name="stations_navigate_action">行く</string>
     <string name="stations_navigate_no_app">ルートを開く地図アプリが見つかりません。</string>
+    <string name="stations_nearest_action">近くの最安値</string>
+    <string name="stations_nearest_needs_location">位置情報をオンにすると最寄りのスタンドを検索できます。</string>
+    <string name="stations_nearest_no_fix">現在GPSの信号を取得できません。位置情報を有効にして、もう一度お試しください。</string>
+    <string name="stations_nearest_failed">近くのスタンドが見つかりませんでした。接続を確認して再試行してください。</string>
     <string name="a11y_station_navigate">%1$s へ行く</string>
     <string name="prices_view_stations">スタンド価格を表示</string>
 
@@ -251,6 +255,8 @@
     <string name="settings_show_price_history">価格履歴を表示</string>
     <string name="settings_retention_weeks">スタンドデータの保持期間</string>
     <string name="settings_retention_weeks_option">%1$d 週間</string>
+    <string name="settings_nearest_station_radius">「最安の給油所を探す」の検索半径</string>
+    <string name="settings_nearest_station_radius_option">%1$d km</string>
     <string name="settings_storage_usage">ストレージ使用量</string>
     <string name="settings_storage_summary_rows">サマリー行：%1$s</string>
     <string name="settings_storage_station_rows">スタンド行：%1$s</string>
