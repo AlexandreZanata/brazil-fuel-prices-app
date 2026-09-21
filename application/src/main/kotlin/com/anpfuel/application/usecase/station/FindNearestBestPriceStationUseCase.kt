@@ -5,9 +5,11 @@ import com.anpfuel.application.usecase.price.StationPricesOutcome
 import com.anpfuel.domain.model.RetailStation
 import com.anpfuel.domain.repository.AddressGeocodeOutcome
 import com.anpfuel.domain.repository.AddressGeocodeRepository
+import com.anpfuel.domain.repository.GeocodeRequest
 import com.anpfuel.domain.repository.UserPreferencesRepository
 import com.anpfuel.domain.rule.NearestBestPriceStationRule
 import com.anpfuel.domain.rule.StationAddressNormalizationRule
+import com.anpfuel.domain.rule.StationAddressParsingRule
 import com.anpfuel.domain.valueobject.FuelProduct
 import com.anpfuel.domain.valueobject.GeoCoordinates
 import com.anpfuel.domain.valueobject.PriceAmount
@@ -37,8 +39,12 @@ sealed interface FindNearestStationOutcome {
  * [FindNearestStationOutcome.NoStationWithinRadius] instead of a navigation query.
  *
  * Candidate addresses are resolved in ascending price order, at most
- * [NearestBestPriceStationRule.MAX_GEOCODE_CANDIDATES] requests. A network failure aborts
- * the search immediately instead of waiting for every candidate to time out.
+ * [NearestBestPriceStationRule.MAX_GEOCODE_CANDIDATES] candidates. Each candidate is
+ * geocoded through a fallback ladder — structured street search (with number, then
+ * street-only) before the free-text query derived by [StationAddressNormalizationRule]
+ * — because structured Nominatim queries resolve Brazilian addresses far more
+ * reliably, especially s/n and rodovia addresses. A network failure aborts the search
+ * immediately instead of waiting for every candidate to time out.
  */
 class FindNearestBestPriceStationUseCase(
     private val getStationPricesUseCase: GetStationPricesUseCase,
@@ -64,12 +70,42 @@ class FindNearestBestPriceStationUseCase(
         val geocodedCandidates = NearestBestPriceStationRule
             .selectCandidates(stations)
             .mapNotNull { stationPrice ->
-                val query = StationAddressNormalizationRule.buildGeocodingQuery(
-                    station = stationPrice.station,
-                    preferredMunicipality = preferences.preferredMunicipality,
-                    preferredState = preferences.preferredState,
-                )
-                when (val geocodeOutcome = addressGeocodeRepository.geocode(query)) {
+                val municipality = stationPrice.station.municipality.ifBlank {
+                    preferences.preferredMunicipality?.trim().orEmpty()
+                }
+                val parsed = StationAddressParsingRule.parse(stationPrice.station)
+                val requests = buildList {
+                    // 1) Structured search with housenumber + street.
+                    if (parsed.number != null) {
+                        add(
+                            GeocodeRequest.Structured(
+                                street = "${parsed.number} ${parsed.street}",
+                                city = municipality,
+                                state = stationPrice.station.state.displayName,
+                            ),
+                        )
+                    }
+                    // 2) Structured search with the street only (covers S/N and
+                    //    highway addresses where the number misleads the search).
+                    add(
+                        GeocodeRequest.Structured(
+                            street = parsed.street,
+                            city = municipality,
+                            state = stationPrice.station.state.displayName,
+                        ),
+                    )
+                    // 3) Free-text fallback exactly as before this ladder existed.
+                    add(
+                        GeocodeRequest.FreeText(
+                            StationAddressNormalizationRule.buildGeocodingQuery(
+                                station = stationPrice.station,
+                                preferredMunicipality = preferences.preferredMunicipality,
+                                preferredState = preferences.preferredState,
+                            ),
+                        ),
+                    )
+                }
+                when (val geocodeOutcome = addressGeocodeRepository.geocode(requests)) {
                     is AddressGeocodeOutcome.Success -> NearestBestPriceStationRule.Candidate(
                         station = stationPrice.station,
                         price = stationPrice.price,

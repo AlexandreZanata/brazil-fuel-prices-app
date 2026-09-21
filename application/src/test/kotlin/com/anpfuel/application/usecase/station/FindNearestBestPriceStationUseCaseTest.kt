@@ -9,6 +9,7 @@ import com.anpfuel.domain.model.UserPreferences
 import com.anpfuel.domain.repository.AddressGeocodeOutcome
 import com.anpfuel.domain.repository.AddressGeocodeRepository
 import com.anpfuel.domain.repository.DomainEventPublisher
+import com.anpfuel.domain.repository.GeocodeRequest
 import com.anpfuel.domain.repository.UserPreferencesRepository
 import com.anpfuel.domain.rule.NearestBestPriceStationRule
 import com.anpfuel.domain.valueobject.BrazilianState
@@ -64,9 +65,9 @@ class FindNearestBestPriceStationUseCaseTest {
             stationPrice("5.89", tradeName = "POSTO A", address = "RUA A, 100"),
             stationPrice("6.00", tradeName = "POSTO B", address = "RUA B, 200"),
         )
-        coEvery { addressGeocodeRepository.geocode(match { it.contains("RUA A, 100") }) } returns
+        coEvery { addressGeocodeRepository.geocode(match<List<GeocodeRequest>> { it.containsFreeText("RUA A, 100") }) } returns
             AddressGeocodeOutcome.Success(midCoordinates)
-        coEvery { addressGeocodeRepository.geocode(match { it.contains("RUA B, 200") }) } returns
+        coEvery { addressGeocodeRepository.geocode(match<List<GeocodeRequest>> { it.containsFreeText("RUA B, 200") }) } returns
             AddressGeocodeOutcome.Success(nearCoordinates)
         val eventSlot = slot<StationNavigationRequested>()
 
@@ -89,7 +90,7 @@ class FindNearestBestPriceStationUseCaseTest {
             stationPrice("5.89", tradeName = "POSTO A", address = "RUA A, 100"),
             stationPrice("6.50", tradeName = "POSTO B", address = "RUA B, 200"),
         )
-        coEvery { addressGeocodeRepository.geocode(any()) } returns
+        coEvery { addressGeocodeRepository.geocode(any<List<GeocodeRequest>>()) } returns
             AddressGeocodeOutcome.Success(nearCoordinates)
 
         val outcome = useCase(FuelProduct.GASOLINE_REGULAR, GeoCoordinates.of(-25.4290, -49.2733))
@@ -109,13 +110,13 @@ class FindNearestBestPriceStationUseCaseTest {
             )
         }
         stubStationPrices(*stations.toTypedArray())
-        coEvery { addressGeocodeRepository.geocode(any()) } returns
+        coEvery { addressGeocodeRepository.geocode(any<List<GeocodeRequest>>()) } returns
             AddressGeocodeOutcome.Success(nearCoordinates)
 
         useCase(FuelProduct.GASOLINE_REGULAR, deviceLocation)
 
         coVerify(exactly = NearestBestPriceStationRule.MAX_GEOCODE_CANDIDATES) {
-            addressGeocodeRepository.geocode(any())
+            addressGeocodeRepository.geocode(any<List<GeocodeRequest>>())
         }
     }
 
@@ -125,18 +126,18 @@ class FindNearestBestPriceStationUseCaseTest {
             stationPrice("5.89", tradeName = "POSTO A", address = "RUA A, 100"),
             stationPrice("6.00", tradeName = "POSTO B", address = "RUA B, 200"),
         )
-        coEvery { addressGeocodeRepository.geocode(any()) } returns AddressGeocodeOutcome.NetworkError
+        coEvery { addressGeocodeRepository.geocode(any<List<GeocodeRequest>>()) } returns AddressGeocodeOutcome.NetworkError
 
         val outcome = useCase(FuelProduct.GASOLINE_REGULAR, deviceLocation)
 
         assertEquals(FindNearestStationOutcome.GeocodingFailed, outcome)
-        coVerify(exactly = 1) { addressGeocodeRepository.geocode(any()) }
+        coVerify(exactly = 1) { addressGeocodeRepository.geocode(any<List<GeocodeRequest>>()) }
     }
 
     @Test
     fun returnsNoStationWithinRadiusWhenEveryCandidateIsBeyondTheRadius() = runTest {
         stubStationPrices(stationPrice("5.89", tradeName = "POSTO A", address = "RUA A, 100"))
-        coEvery { addressGeocodeRepository.geocode(any()) } returns
+        coEvery { addressGeocodeRepository.geocode(any<List<GeocodeRequest>>()) } returns
             AddressGeocodeOutcome.Success(farCoordinates)
 
         val outcome = useCase(FuelProduct.GASOLINE_REGULAR, deviceLocation)
@@ -147,7 +148,7 @@ class FindNearestBestPriceStationUseCaseTest {
     @Test
     fun returnsSuccessWhenCandidateIsInsideTheConfiguredRadius() = runTest {
         stubStationPrices(stationPrice("5.89", tradeName = "POSTO A", address = "RUA A, 100"))
-        coEvery { addressGeocodeRepository.geocode(any()) } returns
+        coEvery { addressGeocodeRepository.geocode(any<List<GeocodeRequest>>()) } returns
             AddressGeocodeOutcome.Success(farCoordinates)
         coEvery { userPreferencesRepository.getPreferences() } returns
             UserPreferences(nearestStationRadiusKm = 15)
@@ -161,7 +162,7 @@ class FindNearestBestPriceStationUseCaseTest {
     @Test
     fun returnsGeocodingFailedWhenNoAddressResolves() = runTest {
         stubStationPrices(stationPrice("5.89", tradeName = "POSTO A", address = "RUA A, 100"))
-        coEvery { addressGeocodeRepository.geocode(any()) } returns AddressGeocodeOutcome.NotFound
+        coEvery { addressGeocodeRepository.geocode(any<List<GeocodeRequest>>()) } returns AddressGeocodeOutcome.NotFound
 
         val outcome = useCase(FuelProduct.GASOLINE_REGULAR, deviceLocation)
 
@@ -186,6 +187,9 @@ class FindNearestBestPriceStationUseCaseTest {
 
         assertEquals(FindNearestStationOutcome.StationDetailMissing, outcome)
     }
+
+    private fun List<GeocodeRequest>.containsFreeText(snippet: String): Boolean =
+        any { it is GeocodeRequest.FreeText && it.query.contains(snippet) }
 
     private fun stubStationPrices(vararg stationPrices: StationPrice) {
         coEvery { getStationPricesUseCase(fuelProduct = FuelProduct.GASOLINE_REGULAR) } returns

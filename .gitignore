@@ -79,3 +79,4 @@ uploads/
 # Misc
 *.orig
 *.rej
+.freebuff/
