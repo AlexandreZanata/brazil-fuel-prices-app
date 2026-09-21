@@ -20,9 +20,31 @@ class NominatimSearchClient @Inject constructor(
 ) {
 
     suspend fun search(query: String): GeoCoordinates? =
+        executeSearch(
+            BASE_URL.toHttpUrl().newBuilder()
+                .addQueryParameter("q", query),
+        )
+
+    /**
+     * Structured search using Nominatim's component parameters. Prefer this over
+     * [search] whenever the street / city / state parts are known separately —
+     * Nominatim resolves it far more accurately than an ambiguous free-text string.
+     */
+    suspend fun searchStructured(
+        street: String,
+        city: String,
+        state: String,
+    ): GeoCoordinates? =
+        executeSearch(
+            BASE_URL.toHttpUrl().newBuilder()
+                .addQueryParameter("street", street)
+                .addQueryParameter("city", city)
+                .addQueryParameter("state", state),
+        )
+
+    private suspend fun executeSearch(urlBuilder: okhttp3.HttpUrl.Builder): GeoCoordinates? =
         withContext(Dispatchers.IO) {
-            val url = BASE_URL.toHttpUrl().newBuilder()
-                .addQueryParameter("q", query)
+            val url = urlBuilder
                 .addQueryParameter("format", "jsonv2")
                 .addQueryParameter("limit", "1")
                 .addQueryParameter("countrycodes", "br")

@@ -12,4 +12,11 @@ object AddressGeocodeCacheKeyFormatter {
         query.trim()
             .lowercase()
             .replace(WHITESPACE_REGEX, " ")
+
+    /**
+     * Key for a structured request; the prefix guarantees it can never
+     * collide with a free-text query of the same words.
+     */
+    fun formatStructured(street: String, city: String, state: String): String =
+        "structured|${format(street)}|${format(city)}|${format(state)}"
 }

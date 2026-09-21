@@ -6,6 +6,7 @@ import com.anpfuel.data.remote.NominatimRateLimiter
 import com.anpfuel.data.remote.NominatimSearchClient
 import com.anpfuel.domain.repository.AddressGeocodeOutcome
 import com.anpfuel.domain.repository.AddressGeocodeRepository
+import com.anpfuel.domain.repository.GeocodeRequest
 import com.anpfuel.domain.rule.NominatimRateLimitRule
 import java.io.IOException
 import javax.inject.Inject
@@ -19,6 +20,10 @@ import kotlinx.coroutines.sync.withLock
  *
  * Unlike the reverse geocoding flow, a saturated throttle is awaited (bounded) instead of
  * failing immediately, so UC-015 can resolve a handful of candidates in one user request.
+ *
+ * Supports a cascade of fallback queries: the first request that resolves wins;
+ * [AddressGeocodeOutcome.NotFound] advances to the next attempt, while network
+ * and rate-limit failures abort the cascade (no point hammering a dead/paused provider).
  */
 @Singleton
 class AddressGeocodeRepositoryImpl @Inject constructor(
@@ -29,13 +34,27 @@ class AddressGeocodeRepositoryImpl @Inject constructor(
 
     private val requestMutex = Mutex()
 
-    override suspend fun geocode(query: String): AddressGeocodeOutcome {
-        val trimmedQuery = query.trim()
-        if (trimmedQuery.isBlank()) {
-            return AddressGeocodeOutcome.NotFound
-        }
+    override suspend fun geocode(query: String): AddressGeocodeOutcome =
+        geocode(listOf(GeocodeRequest.FreeText(query)))
 
-        val cacheKey = AddressGeocodeCacheKeyFormatter.format(trimmedQuery)
+    override suspend fun geocode(requests: List<GeocodeRequest>): AddressGeocodeOutcome {
+        var lastOutcome: AddressGeocodeOutcome = AddressGeocodeOutcome.NotFound
+        for (request in requests) {
+            when (val outcome = geocodeOnce(request)) {
+                is AddressGeocodeOutcome.Success -> return outcome
+                AddressGeocodeOutcome.NotFound -> lastOutcome = outcome
+                // Abort on transport issues: all later attempts would fail likewise
+                // and the rate limiter budget should not be burned.
+                AddressGeocodeOutcome.NetworkError,
+                AddressGeocodeOutcome.RateLimited -> return outcome
+            }
+        }
+        return lastOutcome
+    }
+
+    private suspend fun geocodeOnce(request: GeocodeRequest): AddressGeocodeOutcome {
+        val cacheKey = cacheKeyFor(request) ?: return AddressGeocodeOutcome.NotFound
+
         addressGeocodeCacheStore.get(cacheKey)?.let { cached ->
             return AddressGeocodeOutcome.Success(cached)
         }
@@ -51,7 +70,14 @@ class AddressGeocodeRepositoryImpl @Inject constructor(
 
             val coordinates = try {
                 rateLimiter.recordRequest()
-                nominatimSearchClient.search(trimmedQuery)
+                when (request) {
+                    is GeocodeRequest.FreeText -> nominatimSearchClient.search(request.query)
+                    is GeocodeRequest.Structured -> nominatimSearchClient.searchStructured(
+                        street = request.street,
+                        city = request.city,
+                        state = request.state,
+                    )
+                }
             } catch (_: IOException) {
                 return@withLock AddressGeocodeOutcome.NetworkError
             } ?: return@withLock AddressGeocodeOutcome.NotFound
@@ -59,6 +85,18 @@ class AddressGeocodeRepositoryImpl @Inject constructor(
             addressGeocodeCacheStore.put(cacheKey, coordinates)
             AddressGeocodeOutcome.Success(coordinates)
         }
+    }
+
+    private fun cacheKeyFor(request: GeocodeRequest): String? = when (request) {
+        is GeocodeRequest.FreeText -> request.query.trim()
+            .takeIf { it.isNotBlank() }
+            ?.let(AddressGeocodeCacheKeyFormatter::format)
+
+        is GeocodeRequest.Structured -> AddressGeocodeCacheKeyFormatter.formatStructured(
+            street = request.street,
+            city = request.city,
+            state = request.state,
+        )
     }
 
     /**

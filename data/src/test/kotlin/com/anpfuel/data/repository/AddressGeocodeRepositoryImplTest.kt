@@ -6,6 +6,7 @@ import com.anpfuel.data.remote.NominatimFixtureFiles
 import com.anpfuel.data.remote.NominatimRateLimiter
 import com.anpfuel.data.remote.NominatimSearchClient
 import com.anpfuel.domain.repository.AddressGeocodeOutcome
+import com.anpfuel.domain.repository.GeocodeRequest
 import com.anpfuel.domain.valueobject.GeoCoordinates
 import java.time.Clock
 import java.time.Instant
@@ -135,6 +136,39 @@ class AddressGeocodeRepositoryImplTest {
     fun returnsNotFoundForBlankQuery() = runTest {
         assertEquals(AddressGeocodeOutcome.NotFound, repository.geocode("   "))
         assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun returnsSuccessForStructuredRequestAndCachesResult() = runTest {
+        server.enqueue(jsonResponse(NominatimFixtureFiles.readSearchCuritiba()))
+
+        val request = GeocodeRequest.Structured(
+            street = "Rua XV de Novembro",
+            city = "Curitiba",
+            state = "Paraná",
+        )
+        val outcome = repository.geocode(listOf(request))
+
+        assertEquals(AddressGeocodeOutcome.Success(coordinates), outcome)
+        assertEquals(1, server.requestCount)
+        val requestRecorded = server.takeRequest()
+        assertEquals("Rua XV de Novembro", requestRecorded.requestUrl?.queryParameter("street"))
+        assertEquals("Curitiba", requestRecorded.requestUrl?.queryParameter("city"))
+        assertEquals("Paraná", requestRecorded.requestUrl?.queryParameter("state"))
+    }
+
+    @Test
+    fun abortsCascadeOnTransportError() = runTest {
+        server.enqueue(MockResponse().setResponseCode(500))
+
+        val requests = listOf(
+            GeocodeRequest.Structured(street = "Rua A", city = "Curitiba", state = "Paraná"),
+            GeocodeRequest.FreeText("Curitiba"),
+        )
+        val outcome = repository.geocode(requests)
+
+        assertEquals(AddressGeocodeOutcome.NetworkError, outcome)
+        assertEquals(1, server.requestCount)
     }
 
     private fun jsonResponse(body: String): MockResponse =
